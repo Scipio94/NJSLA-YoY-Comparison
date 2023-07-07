@@ -107,6 +107,112 @@ WHERE t3.Grade = 3 -- input different integer to filter for appropiate grade lev
 ORDER BY t3.SY, t3.Grade
 
 
+/*MATH Overall Average YoY Change*/
+CREATE TEMP TABLE t4 AS 
+SELECT 
+ DISTINCT SY,
+  Subject,
+  ROUND(AVG(Proficiency____)  OVER (),2) AS Ovr_AVG
+FROM `my-data-project-36654.NJSLA_Comparison.NJSLA_Spr22_MATH`
+WHERE SY IS NOT NULL
+UNION ALL
+SELECT 
+ DISTINCT SY,
+  Subject,
+  ROUND(AVG(Proficiency____)  OVER (),2) AS Ovr_AVG
+FROM `my-data-project-36654.NJSLA_Comparison.NJSLA_Spr23_MATH`
+WHERE SY IS NOT NULL;
+
+SELECT
+  t4.SY, 
+  t4.Subject,
+  t4.Ovr_AVG,
+  COALESCE(ROUND(t4.Ovr_Avg - LAG(t4.Ovr_Avg) OVER (ORDER BY t4.SY),2),0) AS YoY_Change,
+  COALESCE(ROUND((t4.Ovr_Avg - LAG(t4.Ovr_Avg) OVER (ORDER BY t4.SY))/ LAG(t4.Ovr_Avg) OVER (ORDER BY t4.SY),2),0) AS YoY_Pct_Change
+FROM t4
+ORDER BY t4.SY;
+
+/*YoY Change Campus MATH*/
+CREATE TEMP TABLE t5 AS
+SELECT
+  SY, 
+  Subject, 
+  Grade, 
+  CASE
+    WHEN Grade BETWEEN 3 AND 5 THEN 'ES'
+    WHEN Grade BETWEEN 6 AND 8 THEN 'MS'
+    WHEN Grade > 8 THEN 'HS'
+    END AS Campus,
+  Proficiency____ AS Proficiency
+FROM `my-data-project-36654.NJSLA_Comparison.NJSLA_Spr22_MATH`
+WHERE SY IS NOT NULL
+UNION ALL
+SELECT
+  SY, 
+  Subject, 
+  Grade,
+   CASE
+    WHEN Grade BETWEEN 3 AND 5 THEN 'ES'
+    WHEN Grade BETWEEN 6 AND 8 THEN 'MS'
+    WHEN Grade > 8 THEN 'HS'
+    END AS Campus, 
+  Proficiency____ AS Proficiency
+FROM `my-data-project-36654.NJSLA_Comparison.NJSLA_Spr23_MATH`
+WHERE SY IS NOT NULL;
+
+SELECT 
+  sub1.SY,
+  sub1.Subject, 
+  sub1.Campus, 
+  sub1.Campus_Avg,
+  COALESCE(ROUND(sub1.Campus_Avg - LAG(sub1.Campus_Avg) OVER (ORDER BY sub1.SY),2),0) AS YoY_Change,
+  COALESCE(ROUND((sub1.Campus_Avg - LAG(sub1.Campus_Avg) OVER (ORDER BY sub1.SY))/ LAG(sub1.Campus_Avg) OVER (ORDER BY sub1.SY),2),0) AS Pct_Increase
+FROM 
+(SELECT 
+ DISTINCT sub.SY, 
+  sub.Subject, 
+  sub.Campus,
+  ROUND(AVG(sub.Proficiency) OVER (PARTITION BY sub.SY, sub.Campus),2) AS Campus_Avg
+FROM 
+(SELECT
+  t5.SY, 
+  t5.Subject, 
+  t5.Grade, 
+  t5.Campus, 
+  t5.Proficiency
+FROM t5) AS sub
+ORDER BY sub.SY, sub.Campus) AS sub1
+WHERE sub1.Campus = 'ES'
+ORDER BY sub1.SY;
+
+/*YoY Change Grade MATH*/
+CREATE TEMP TABLE t6 AS
+SELECT
+  SY, 
+  Subject, 
+  Grade, 
+  Proficiency____ AS Proficiency
+FROM `my-data-project-36654.NJSLA_Comparison.NJSLA_Spr22_MATH`
+WHERE SY IS NOT NULL
+UNION ALL
+SELECT
+  SY, 
+  Subject, 
+  Grade, 
+  Proficiency____ AS Proficiency
+FROM `my-data-project-36654.NJSLA_Comparison.NJSLA_Spr23_MATH`
+WHERE SY IS NOT NULL;
+
+SELECT
+  t6.SY, 
+  t6.Subject, 
+  t6.Grade, 
+  t6.Proficiency, 
+ COALESCE(ROUND(t6.Proficiency - LAG(t6.Proficiency) OVER (ORDER BY t6.SY),2),0) AS YoY_Change,
+  COALESCE(ROUND((t6.Proficiency - LAG(t6.Proficiency) OVER (ORDER BY t6.SY)) / LAG(t6.Proficiency) OVER (ORDER BY t6.SY),2),0) AS YoY_Pct_Change
+FROM t6
+WHERE t6.Grade = 8 -- change the integer to filter for each grade level
+ORDER BY t6.SY, t6.Grade;
 
 
 ~~~~
